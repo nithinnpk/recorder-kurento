@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="shortcut icon" href="img/kurento.png" type="image/png" />
+<link rel="stylesheet"
+	href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+
+
+<title>Webrtc Recorder</title>
+<style>
+   body{
+   	margin: 0px;
+   	background-color: #000000;
+   	position: fixed;
+   	width: 100%;
+   	height: 100%;
+   }
+   #countingback{
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    z-index: 999999;
+    opacity: 1;
+    top: 0px;
+    display: none;
+
+   }
+   .tool-bar{
+   	padding-top: 20px;
+   	width: 108px;
+   	height: 10%;
+    margin:0 auto;
+   }
+   .vid-wraper{
+   	width: 100%;
+   	position: absolute;
+    bottom: 40px;
+    top: 42px;
+   }
+   video{
+   	 width: 100%;
+     height:100%;
+
+   }
+   .btn{
+   	 border-radius: 3px;
+    bottom: 6px !important;
+    font-size: 12px;
+    padding: 3px;
+    position: absolute;
+    width: 108px;
+   }
+   audio{
+   	width: 100% !important;
+   	margin-top: -50px;
+   	z-index: 999999;
+   }
+   #page-no{
+        position: fixed;
+    background-color: #888;
+    left: 44%;
+    top: 0px;
+    z-index: 99999999;
+    border-bottom-right-radius: 45px;
+    border-bottom-left-radius: 45px;
+    padding: 11px;
+    display:none;
+   }
+   .current{
+      font-size: 24px;
+      color: #ffffff;
+      font-weight: bold;
+   }
+   .total{
+      font-size: 24px;
+      color: #ffffff;
+      font-weight: bold;
+   }
+   .current-time{
+    font-size: 12px;
+    font-weight: bold;
+    color: #ff0000;
+   }
+
+   #cont-no{
+    background-color: #C8E9F4;
+    border-radius: 110px;
+    color: #000;
+    font-size: 31px;
+    font-weight: bold;
+    height: 64px;
+    left: 43%;
+    padding-left: 26px;
+    padding-top: 10px;
+    position: fixed;
+    top: 40%;
+    width: 67px;
+    z-index: 2147483647;
+    display: none;
+
+   }
+   #save{
+    margin-left: 130px;
+    width: 50px;
+    display: none;
+    padding:3px;
+   }
+   #delete{
+    margin-left: -74px;
+    width: 50px;
+    display: none;
+    padding:3px;
+   }
+   .rem-time{
+    background: #888 none repeat scroll 0 0;
+    font-size: 13px;
+    height: 21px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    text-align: center;
+   }
+   .cont-tot{
+    background:#fff;color:#777;padding: 0 3px 0 3px;
+   }
+   .show-t{
+    color:#fff;line-height:1;
+   }
+   .bck-red{
+     background-color:#ff0000;
+   }
+</style>
+<script>
+var QueryString = function () {
+  // This function is anonymous, is executed immediately and
+  // the return value is assigned to QueryString!
+  var query_string = {};
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+  for (var i=0;i<vars.length;i++) {
+    var pair = vars[i].split("=");
+        // If first entry with this name
+    if (typeof query_string[pair[0]] === "undefined") {
+      query_string[pair[0]] = decodeURIComponent(pair[1]);
+        // If second entry with this name
+    } else if (typeof query_string[pair[0]] === "string") {
+      var arr = [ query_string[pair[0]],decodeURIComponent(pair[1]) ];
+      query_string[pair[0]] =
+ arr;
+        // If third or later entry with this name
+    } else {
+      query_string[pair[0]].push(decodeURIComponent(pair[1]));
+    }
+  }
+    return query_string;
+}();
+//alert(QueryString.a);
+var 	  streamName   =  QueryString.streamName;
+var 	  video        =  QueryString.video;
+var     playback     =  QueryString.playback;
+var     ppt          =  QueryString.ppt;
+var     totalTimeAv  =  QueryString.time;
+var     totalpage    =  QueryString.totalpage;
+
+//Local environment
+/*
+var     recordpath   =  'home/nithinenfin/kurento-recorder/static/recordings/'+streamName+'.webm';
+var     kurentoUrl   =  'wss://localhost:8433/kurento';
+var     playbacpath  =  'recordings/'+streamName+'.webm';
+var     pptRoot      =  'https://s3-ap-southeast-1.amazonaws.com/bmt.myfiles/'+ppt+'/'+ppt+'_';
+var     pptserverpath =  'static/ppt/'+ppt+'/';
+var     jsonRoot     =  'json/'+streamName+'/';
+var     node_url     =   'https://localhost:8080';
+*/
+
+//Remote environment
+
+var     recordpath   =  'home/ubuntu/kurento-recorder/static/recordings/'+streamName+'.webm';
+var     kurentoUrl   =  'wss://recording.trainybee.com:8433/kurento';
+var     playbacpath  =  'recordings/'+streamName+'.webm';
+var     pptRoot      =  'https://s3-ap-southeast-1.amazonaws.com/bmt.myfiles/'+ppt+'/'+ppt+'_';
+var     pptserverpath =  'static/ppt/'+ppt+'/';
+var     jsonRoot     =  'json/'+streamName+'/';
+var     node_url     =   'https://recording.trainybee.com:443';
+
+</script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+
+<script src="bower_components/ekko-lightbox/dist/ekko-lightbox.min.js"></script>
+<script src="bower_components/ekko-lightbox/dist/ekko-lightbox.min.js"></script>
+<script src="bower_components/adapter.js/adapter.js"></script>
+
+<script src="bower_components/kurento-client/js/kurento-client.js"></script>
+<script src="bower_components/kurento-utils/js/kurento-utils.js"></script>
+
+<script src="js/index.js"></script>
+
+<script>
+window.addEventListener('load', function(event) {
+	if(ppt != '0' || video == '0')
+	{
+		    var innerEle     =  '<img id="currentSlide" src="img/record.jpg" width="100%" height="100%"/>';
+		    innerEle     +=  '<audio id="videoInput"  autoplay></audio>';
+
+		document.getElementById("vid-cont").innerHTML = innerEle;
+                if(ppt != '0')
+	        {
+		   $('#currentSlide').attr('src',pptRoot+currentpage+'.png');
+                }
+
+        }
+	if(playback == '1')
+	{
+		startPlaying();
+		displayNoneAll();
+		$('#next').hide();
+		$('#previous').hide();
+		$('.rem-time').hide();
+
+	}
+
+       if(totalTimeAv == '0'){
+
+              $('.rem-time').hide();
+
+        }
+
+
+
+
+});
+var countTime = 5;
+function showCounter(){
+  if(countTime>0){
+        $('#cont-no').show();
+        $('#countingback').show();
+        setTimeout(showCounter,1000);
+        $('#cont-no').html(countTime);
+        countTime --;
+
+  }else{
+     hideCounter();
+    if(totalTimeAv != '0'){
+     startTimer();
+    }
+  }
+
+}
+function hideCounter(){
+   $('#cont-no').hide();
+   $('#countingback').hide();
+   countTime = 5;
+}
+var timelimit = totalTimeAv;
+function startTimer(){
+   if(timelimit>0){
+
+        setTimeout(startTimer,1000);
+        $('#countdowntime').html(seconds2time(timelimit));
+        timelimit --;
+        if(timelimit < 10){
+          $('.rem-time').addClass('bck-red');
+        }
+
+  }else{
+        timelimit = totalTimeAv;
+        $('#countdowntime').html(seconds2time(timelimit));
+        stopRecording();
+        $('.rem-time').removeClass('bck-red');
+  }
+}
+function seconds2time (seconds) {
+    var hours   = Math.floor(seconds / 3600);
+    var minutes = Math.floor((seconds - (hours * 3600)) / 60);
+    var seconds = seconds - (hours * 3600) - (minutes * 60);
+    var time = "";
+
+    if (hours != 0) {
+      time = hours+":";
+    }
+    if (minutes != 0 || time !== "") {
+      minutes = (minutes < 10 && time !== "") ? "0"+minutes : String(minutes);
+      time += minutes+":";
+    }
+    if (time === "") {
+      time = '00:'+seconds;
+    }
+    else {
+      time += (seconds < 10) ? "0"+seconds : String(seconds);
+    }
+    return time;
+}
+function saveToDb(){
+	//$(window).parent().find('#multiplerecord').show();
+}
+function myFunction() {
+
+}
+function onDelete(){
+    $('#reset').trigger('click');
+}
+document.domain = "trainybee.com";
+</script>
+</head>
+<body>
+	<div class="rem-time"><span class="show-t"><strong>&nbsp;<span id="showcountdown" style=""><input type="hidden" id="reallimit" value="2">Time remaining for your Task : <i id="countdowntime" class="count-tot">02:00</i></span><span id="minspan"> Mins</span></strong></span></div>
+	        <div id="vid-cont" class="vid-wraper">
+               <video id="videoInput" poster="img/record.jpg" autoplay></video>
+	        </div>
+
+			<div class="tool-bar">
+				<a id="start" href="#" class="btn btn-success"> <span
+					class="glyphicon glyphicon-play"></span> Start Recording
+				</a>
+				<a style="display: none;" id="stop" href="#" class="btn btn-danger"> <span
+					class="glyphicon glyphicon-stop"></span> Stop Recording <span class="current-time"></span>
+				</a>
+				<a style="display: none;" id="play" href="#" class="btn btn-success"> <span
+					class="glyphicon glyphicon-play"></span> Play Recording
+				</a>
+				<a style="display: none;" id="reset" href="#" class="btn btn-warning"> <span
+					class="glyphicon glyphicon-stop"></span> Record Again
+				</a>
+        <a id="save" onclick="parent.nextrecord()" href="#" class="btn btn-primary" style="bottom: 6px !important;height:25px;">Save
+        </a>
+        <a id="delete" onclick="onDelete()" href="#" class="btn btn-danger" style="bottom: 6px !important;height:25px;">Delete
+        </a>
+
+
+        <a style="left: 10%;width: 32px;border-radius: 10px;display:none"  id="previous" href="#" class="btn" style="bottom: 3px !important;"><img  src="img/previous.png"/>
+        </a>
+
+        <a  class="btn" href="#" id="next" style="right: 10%; width: 32px; border-radius: 10px;display:none" style="bottom: 3px !important;"><img  src="img/next.png"/>
+        </a>
+			</div>
+
+      <div id="countingback"> </div>
+      <div id="cont-no">5<div>
+
+ </body>
+</html>
+<script>
+if(!totalTimeAv){
+   totalTimeAv = 0;
+}
+$('#countdowntime').html(seconds2time(parseInt(totalTimeAv)));
+</script>
